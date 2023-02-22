@@ -40,13 +40,9 @@ async fn main() -> Result<(), reqwest::Error> {
         "order[chapter]=asc&order[volume]=asc&limit=500&translatedLanguage[]=en",
     ));
 
-    // #[cfg(debug_assertions)]
-    // dbg!(uuid, url.clone());
-
     let res = client.get(url).send().await.unwrap().text().await.unwrap();
-    // println!("{:#?}", res);
     let json: Feed = serde_json::from_str(res.as_str()).unwrap();
-    // println!("{:#?}", json);
+    // println!("{:?}", json.total);
 
     Ok(())
 }
