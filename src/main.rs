@@ -1,3 +1,6 @@
+mod mangadex_feed;
+use mangadex_feed::Feed;
+
 use std::{ops::Index, str::FromStr};
 
 use clap::Parser;
@@ -9,11 +12,6 @@ struct Args {
     /// Mangadex url for a specific manga
     #[arg(long, short)]
     url: String,
-    // url: Option<String>,
-
-    // /// UUID found in the link of a manga's page on mangadex
-    // #[arg(long)]
-    // uuid: Option<String>,
 }
 
 fn validate_url(url: &String) -> Result<String, ()> {
@@ -21,42 +19,34 @@ fn validate_url(url: &String) -> Result<String, ()> {
         eprintln!("Invalid url");
         return Err(());
     }
-
     let uuid = url.split("/").collect::<Vec<&str>>().index(4).to_string();
 
     Ok(uuid)
-    // (true, "".to_string())
-    // todo!()
 }
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
-
-    // println!("Hello, world!");
     let client = Client::new();
 
-    // let url = match &args.uuid {
-    //     Some(uuid) => format!("https://api.mangadex.org/manga/{}", uuid),
-    //     None => args.url.unwrap()
-    // };
-    // https://mangadex.org/title/4535092c-36d9-49ce-982e-ad827d35a238/diana-is-a-strange-mermaid
-    // let url = args.url;
-    // let res = client.get("https://api.mangadex.org/manga/{}").send().await.unwrap();
-
+    // Get uuid from arguments. Exit program if url wasnt valid
     let uuid = match validate_url(&args.url) {
         Ok(uuid) => uuid,
         Err(_) => std::process::exit(1),
     };
-    let mut url = Url::from_str(format!("https://api.mangadex.org/manga/{}", uuid).as_str()).unwrap();
-    url.set_query(Some("order[chapter]=asc&order[volume]=asc&limit=500&translatedLanguage[]=en"));
-    // url.set_query(Some("order[volume]=asc"));
-    // url.set_query(Some("limit=500"));
-    // url.set_query(Some("translatedLanguage[]=en"));
-    dbg!(uuid, &url);
+    let url_str = format!("https://api.mangadex.org/manga/{}/feed", uuid);
+    let mut url = Url::from_str(url_str.as_str()).unwrap();
+    url.set_query(Some(
+        "order[chapter]=asc&order[volume]=asc&limit=500&translatedLanguage[]=en",
+    ));
+
+    // #[cfg(debug_assertions)]
+    // dbg!(uuid, url.clone());
 
     let res = client.get(url).send().await.unwrap().text().await.unwrap();
-    println!("{:#?}", res);
+    // println!("{:#?}", res);
+    let json: Feed = serde_json::from_str(res.as_str()).unwrap();
+    // println!("{:#?}", json);
 
     Ok(())
 }
