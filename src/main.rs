@@ -2,9 +2,9 @@ mod api;
 mod utils;
 
 use api::Feed;
-use utils::dl_resource;
+use utils::{dl_resource, get_path};
 
-use std::{ops::Index, str::FromStr, thread};
+use std::{ops::Index, str::FromStr};
 
 use clap::Parser;
 use reqwest::{Client, Url};
@@ -15,18 +15,20 @@ struct Args {
     /// Mangadex url for a specific manga
     #[arg(long, short)]
     url: String,
+    // all: Option<bool>
 }
 
-fn validate_url(url: &String) -> Result<String, ()> {
+fn validate_url(url: &String) -> Result<(String, String), ()> {
     if !url.starts_with("https://mangadex.org/title/") {
         eprintln!("Invalid url");
         return Err(());
     }
-    // let uuid = url.split("/").collect::<Vec<&str>>().index(4).to_string();
-    let uuid = url.split("/").collect::<Vec<&str>>().index(4).to_string();
-    // let uuid = url.split("/").collect::<Vec<String>>().index(4)
 
-    Ok(uuid)
+    let parts = url.split("/").collect::<Vec<&str>>();
+    let uuid = parts.index(4).to_string();
+    let name = parts.index(5).to_string();
+
+    Ok((name, uuid))
 }
 
 #[tokio::main]
@@ -34,8 +36,10 @@ async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
     let client = Client::new();
 
+    // println!("{:#?}", args);
+
     // Get uuid from arguments. Exit program if url wasnt valid
-    let uuid = match validate_url(&args.url) {
+    let (name, uuid) = match validate_url(&args.url) {
         Ok(uuid) => uuid,
         Err(_) => std::process::exit(1),
     };
@@ -47,10 +51,16 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let res = client.get(url).send().await.unwrap().text().await.unwrap();
     let json: Feed = serde_json::from_str(res.as_str()).unwrap();
-    // println!("{:?}", _json.data);
+
+    std::fs::create_dir_all(get_path(&name)).unwrap();
+    // match std::fs::create_dir_all(format!("/Users/antonfredriksson/Desktop/mangadex-dl/{}", name)) {
+    //     Ok(_) => println!("created dir"),
+    //     Err(_) => eprintln!("error"),
+    // };
 
     for chapter in json.data[0..10].iter() {
-        dl_resource(chapter.id.clone()).unwrap();
+        println!("Downloading chapter - {:?}", chapter.attributes.title);
+        dl_resource(name.clone(), chapter.id.clone()).await.unwrap();
     }
 
     Ok(())
