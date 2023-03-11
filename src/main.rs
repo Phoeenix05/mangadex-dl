@@ -1,7 +1,10 @@
-mod mangadex_feed;
-use mangadex_feed::Feed;
+mod api;
+mod utils;
 
-use std::{ops::Index, str::FromStr};
+use api::Feed;
+use utils::dl_resource;
+
+use std::{ops::Index, str::FromStr, thread};
 
 use clap::Parser;
 use reqwest::{Client, Url};
@@ -19,7 +22,9 @@ fn validate_url(url: &String) -> Result<String, ()> {
         eprintln!("Invalid url");
         return Err(());
     }
+    // let uuid = url.split("/").collect::<Vec<&str>>().index(4).to_string();
     let uuid = url.split("/").collect::<Vec<&str>>().index(4).to_string();
+    // let uuid = url.split("/").collect::<Vec<String>>().index(4)
 
     Ok(uuid)
 }
@@ -42,7 +47,11 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let res = client.get(url).send().await.unwrap().text().await.unwrap();
     let json: Feed = serde_json::from_str(res.as_str()).unwrap();
-    // println!("{:?}", json.total);
+    // println!("{:?}", _json.data);
+
+    for chapter in json.data[0..10].iter() {
+        dl_resource(chapter.id.clone()).unwrap();
+    }
 
     Ok(())
 }
