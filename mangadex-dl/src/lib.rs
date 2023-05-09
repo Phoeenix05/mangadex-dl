@@ -1,87 +1,52 @@
 #![allow(dead_code)]
 
 #[derive(Debug)]
-pub enum DownloadStatus {
-    Ok,
-    Timeout,
-    Failed,
-}
-
-#[derive(Debug)]
 pub struct Info<T> {
     data: T,
 }
 
 #[derive(Debug)]
-pub struct ImageDownload {
-    status: DownloadStatus,
-    url: String,
-    path: String,
-}
-
-#[derive(Debug)]
-pub struct Downloader {
-    query: String,
-}
+pub struct Downloader;
 
 impl Downloader {
-    pub async fn get_info(&self) -> Result<Info<String>, reqwest::Error> {
+    pub async fn get_info(query: Option<&str>) -> Result<Info<String>, reqwest::Error> {
+        // Header
+        use reqwest::header::HeaderValue;
+
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.append(
-            "accept",
-            reqwest::header::HeaderValue::from_static("application/json"),
-        );
-        let url_str = format!(
-            "https://api.mangadex.org/manga/{}/feed",
-            self.query.as_str()
-        );
-        let mut url = reqwest::Url::parse(&url_str).unwrap();
+        headers.append("accept", HeaderValue::from_static("application/json"));
+
+        // Build the request url
+        use reqwest::Url;
+
+        let query = query.unwrap_or("c288b108-5162-4065-aa3a-5857ec38c8d9");
+        let mut url = Url::try_from(format!("https://api.mangadex.org/manga/{query}/feed").as_str()).unwrap();
         url.set_query(Some(
             "order[chapter]=asc&order[volume]=asc&limit=500&translatedLanguage[]=en",
         ));
-        // dbg!(&url);
 
-        let client = reqwest::Client::new();
+        // Build the request client and send a request
+        use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
+        use reqwest::Client;
+        use reqwest_middleware::ClientBuilder;
 
+        let client = ClientBuilder::new(Client::new())
+            .with(Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: CACacheManager::default(),
+                options: None,
+            }))
+            .build();
         let req = client.get(url).headers(headers);
         dbg!(&req);
-
         let res = req.send().await.unwrap().text().await.unwrap();
+
         // Convert String to Mangadex Feed.
 
-        Ok(Info {
-            data: res.to_string(),
-        })
+        Ok(Info { data: res.to_string() })
     }
 
-    pub async fn download_images(
-        &self,
-        _info: Info<String>,
-    ) -> Result<Vec<ImageDownload>, reqwest::Error> {
-        Ok(Vec::new())
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct DownloaderBuilder {
-    query: Option<String>,
-}
-
-impl DownloaderBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_query(mut self, query: String) -> Self {
-        self.query = Some(query);
-        self
-    }
-
-    pub fn build(self) -> Downloader {
-        Downloader {
-            query: self
-                .query
-                .unwrap_or("c288b108-5162-4065-aa3a-5857ec38c8d9".to_string()),
-        }
+    pub async fn download_images(_info: Info<String>) -> Result<(), reqwest::Error> {
+        Ok(())
     }
 }
