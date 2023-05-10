@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::thread::Thread;
+// use std::thread::{self, JoinHandle};
 
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
 use reqwest::{header::HeaderValue, Client, Url};
@@ -39,16 +39,24 @@ impl Downloader {
             }))
             .build();
         let req = client.get(url).headers(headers);
-        dbg!(&req);
+        // dbg!(&req);
         let res: Feed = req.send().await.unwrap().json().await.unwrap();
-
-        // Convert String to Mangadex Feed.
 
         Ok(Info { data: res })
     }
 
-    pub async fn download_images(_info: Info<Feed>) -> Result<(), reqwest::Error> {
-        let mut download_processes: Vec<Thread> = Vec::new();
+    pub async fn download_chapters(info: Info<Feed>) -> Result<(), reqwest::Error> {
+        // let mut download_processes: Vec<JoinHandle<()>> = vec![];
+
+        // Download logic
+        for (i, chapter) in info.data.data.into_iter().enumerate() {
+            // let thread = thread::spawn(move || {
+
+            // });
+            // download_processes.push(thread);
+            let uuid = chapter.id.unwrap();
+            println!("{i} {uuid}");
+        }
 
         Ok(())
     }

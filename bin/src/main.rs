@@ -2,9 +2,9 @@ use mangadex_dl_lib::*;
 
 #[tokio::main]
 async fn main() {
-    let info = Downloader::get_info(Some("c288b108-5162-4065-aa3a-5857ec38c8d9"))
+    let info = Downloader::get_info(Some("e78a489b-6632-4d61-b00b-5206f5b8b22b"))
         .await
         .unwrap();
-    dbg!(&info);
-    let _ = Downloader::download_images(info).await.unwrap();
+    // dbg!(&info);
+    let _ = Downloader::download_chapters(info).await.unwrap();
 }
