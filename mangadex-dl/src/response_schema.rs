@@ -51,5 +51,18 @@ pub struct Relationship {
     pub attributes: Option<serde_json::Value>,
 }
 
-// #[derive(Serialize, Deserialize)]
-// pub struct RelationshipAttributes {}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AtHomeServer {
+    pub result: Option<String>,
+    #[serde(rename = "baseUrl")]
+    pub base_url: Option<String>,
+    pub chapter: Option<Chapter>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Chapter {
+    pub hash: Option<String>,
+    pub data: Option<Vec<String>>,
+    #[serde(rename = "dataSaver")]
+    pub data_saver: Option<Vec<String>>,
+}
